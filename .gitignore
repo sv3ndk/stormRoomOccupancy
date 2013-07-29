@@ -1,6 +1,9 @@
 *.class
+target/
+.Rhistory
 
-# Package Files #
-*.jar
-*.war
-*.ear
+.RData
+.Rhistory
+
+
+*.pyc
