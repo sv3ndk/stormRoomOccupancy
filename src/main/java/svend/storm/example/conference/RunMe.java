@@ -1,6 +1,7 @@
 package svend.storm.example.conference;
 
 import storm.trident.TridentTopology;
+import storm.trident.spout.RichSpoutBatchExecutor;
 import svend.storm.example.conference.input.EventBuilder;
 import svend.storm.example.conference.input.ExtractCorrelationId;
 import svend.storm.example.conference.input.SimpleFileStringSpout;
@@ -10,6 +11,7 @@ import svend.storm.example.conference.timeline.BuildHourlyUpdateInfo;
 import svend.storm.example.conference.timeline.IsPeriodComplete;
 import svend.storm.example.conference.timeline.TimelineBackingMap;
 import svend.storm.example.conference.timeline.TimelineUpdater;
+import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.tuple.Fields;
 import backtype.storm.utils.Utils;
@@ -46,9 +48,13 @@ public class RunMe {
 			.persistentAggregate( TimelineBackingMap.FACTORY, new Fields("presencePeriod","roomId", "roundStartTime"), new TimelineUpdater(), new Fields("hourlyTimeline"))
 			;
 		
+		
+		Config config = new Config();
+		config.put(RichSpoutBatchExecutor.MAX_BATCH_SIZE_CONF, 100);
+		
 		LocalCluster cluster = new LocalCluster();
 		
-		cluster.submitTopology("occupancyTopology", null, topology.build());
+		cluster.submitTopology("occupancyTopology", config, topology.build());
 		
 		// this is soooo elegant...
 		Utils.sleep(60000);

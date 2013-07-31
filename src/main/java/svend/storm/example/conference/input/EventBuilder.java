@@ -16,7 +16,8 @@ import svend.storm.example.conference.LocationChangedEvent;
  */
 public class EventBuilder extends BaseFunction {
 
-	private ObjectMapper mapper = new ObjectMapper();
+	private transient ObjectMapper mapper ;
+	
 	private static final long serialVersionUID = 1L;
 
 	public void execute(TridentTuple tuple, TridentCollector collector) {
@@ -24,13 +25,22 @@ public class EventBuilder extends BaseFunction {
 
 		if (jsonEvent != null && jsonEvent.length() > 0) {
 			try {
-				LocationChangedEvent event = mapper.readValue(jsonEvent, LocationChangedEvent.class);
+				LocationChangedEvent event = getMapper().readValue(jsonEvent, LocationChangedEvent.class);
 				collector.emit(new Values(event));
 			} catch (IOException e) {
 				// parsing error => asking Storm to retry would be pointless
 				collector.reportError(e);
 			}
 		}
+	}
+	
+	
+	
+	private ObjectMapper getMapper() {
+		if (mapper == null) {
+			mapper = new ObjectMapper();
+		}
+		return mapper;
 	}
 
 }
