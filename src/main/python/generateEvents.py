@@ -1,6 +1,6 @@
 """
 	python 2.7 script for generating random occupancy events. 
-	Generated events will be out of order and non unique 
+	Generated events will be out of chronological order
 """
 from random import uniform, shuffle, sample 
 from time import mktime
@@ -11,8 +11,6 @@ import json
 USERS_NAMES = ["Fred", "Jenny", "Marie", "Zoe", "Robert", "John"]
 ROOM_IDS = ["Conf1", "Conf2", "Cafetaria", "Lounge", "Hall", "Annex1"]
 
-# redundancy level: if .4 => 40% of the events will be repeated, values > 1 are ok
-# REDUNDANCY = 2.4
 
 # all timestamps are expressed in milliseconds since 1rst Jan 1970 
 JULY_27_9am = mktime(datetime(2013, 7, 27, 9, 0).timetuple()) * 1000
@@ -61,11 +59,6 @@ if __name__ == "__main__":
 
 	# transforms timelines into events
 	events = [event for timeline in timelines for occupancy in timeline for event in buildStartStopEvent(occupancy) ]
-
-	# shuffles and duplicate events 
-	# for i in range( (int) (REDUNDANCY - REDUNDANCY % 1) ):
-	# 	events.extend(events)
-	# events.extend(sample(events, (int) (len(events) * (REDUNDANCY % 1)) ))
 
 	shuffle(events)
 
