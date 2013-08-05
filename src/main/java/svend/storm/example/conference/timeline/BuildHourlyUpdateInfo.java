@@ -5,12 +5,11 @@ import java.util.List;
 
 import org.joda.time.DateTime;
 
-import backtype.storm.tuple.Values;
-
 import storm.trident.operation.BaseFunction;
 import storm.trident.operation.TridentCollector;
 import storm.trident.tuple.TridentTuple;
 import svend.storm.example.conference.period.RoomPresencePeriod;
+import backtype.storm.tuple.Values;
 
 /**
  * Emits one tuple per started hour overlapping with the {@link RoomPresencePeriod} of the input tuple. 

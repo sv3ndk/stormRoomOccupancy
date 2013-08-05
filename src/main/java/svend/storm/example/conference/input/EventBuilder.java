@@ -4,12 +4,11 @@ import java.io.IOException;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
-import backtype.storm.tuple.Values;
-
 import storm.trident.operation.BaseFunction;
 import storm.trident.operation.TridentCollector;
 import storm.trident.tuple.TridentTuple;
 import svend.storm.example.conference.LocationChangedEvent;
+import backtype.storm.tuple.Values;
 
 /**
  * Unmarshalls the json String into a {@link LocationChangedEvent} instance and add it to the tuple

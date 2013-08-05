@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
 import storm.trident.state.map.IBackingMap;

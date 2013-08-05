@@ -33,6 +33,7 @@ public class RunMe {
 		topology
 			// reading events
 			.newStream("occupancy", new SimpleFileStringSpout("data/events.json", "rawOccupancyEvent"))
+//			.newStream("occupancy", new TransactionalTextFileSpout("rawOccupancyEvent", "data/events.json", "UTF-8"))
 			.each(new Fields("rawOccupancyEvent"), new EventBuilder(), new Fields("occupancyEvent"))
 			
 			// gathering "enter" and "leave" events into "presence periods"

@@ -1,10 +1,10 @@
 package svend.storm.example.conference.timeline;
 
+import static svend.storm.example.conference.timeline.BuildHourlyUpdateInfo.ONE_HOUR_MILLIS;
+
 import java.util.ArrayList;
 
 import org.joda.time.DateTime;
-
-import static svend.storm.example.conference.timeline.BuildHourlyUpdateInfo.ONE_HOUR_MILLIS;
 
 /**
  * One-hour slice of a room, containing the number of person at each minute from hourStartTime_millis until 59 minute later
