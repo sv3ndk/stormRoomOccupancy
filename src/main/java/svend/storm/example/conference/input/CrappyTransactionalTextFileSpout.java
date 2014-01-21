@@ -29,15 +29,15 @@ import backtype.storm.utils.Utils;
  * 	<ul>
  * 		<li>It might consume a lot of memory: full payload of the emitted messages is kept in memory until the message are successfully acked</li>
  * 		<li>It's not restart proof: all state in maintained in memory as 2 static hashmap => if the worker should restart, it would just replays the file from memory. One would need
- * to keep the emittedMessages and txidMsgIds state persisted somewhere to fix that...</li>
+ * to keep the emittedMessages and txidMsgIds state persisted somewhere (e.g. zk) to fix that...</li>
  * 		<li>It's not very robust: failure while reading just bubble up to the framework (which *might* be ok if we were restart-proof...)</li>
- * 		<li>Reading a local file makes this spout, well, not partitioned! Look at stuff like HDFS spout for something more scalable</li>
+ * 		<li>Reading a local file makes this spout, well, not necessarily very partitioned ! </li>
  * </ul>
  * 						
- * This is a *toy*, use in prod only if you hate your job (and don't mention my name...) :)
+ * => this is a *toy*, use in prod only if you hate your job (and don't mention my name...) :)
  * 
  */
-public class TransactionalTextFileSpout implements ITridentSpout<Set<String>> {
+public class CrappyTransactionalTextFileSpout implements ITridentSpout<Set<String>> {
 
 	private static final long serialVersionUID = 1L;
 
@@ -51,7 +51,8 @@ public class TransactionalTextFileSpout implements ITridentSpout<Set<String>> {
 	// full String paylayd for each message id
 	private final static Map<String, String> emittedMessages = new HashMap<>();
 
-	public TransactionalTextFileSpout(String singleOutputFieldName, String sourceFileName, String encoding) {
+	public CrappyTransactionalTextFileSpout(String singleOutputFieldName, String sourceFileName, String encoding) {
+		System.out.println("crappy");
 		this.singleOutputFieldName = singleOutputFieldName;
 		this.sourceFileName = sourceFileName;
 		this.encoding = encoding;

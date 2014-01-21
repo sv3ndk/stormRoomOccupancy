@@ -23,19 +23,25 @@ import com.datastax.driver.core.exceptions.InvalidQueryException;
 public class CassandraDB {
 
 	// quick and dirty JVM-wide singleton
-	public final static CassandraDB DB = new CassandraDB();
 
 	private final Cluster cluster;
 	private Session session;
 
-	ObjectMapper mapper = new ObjectMapper();
+	private ObjectMapper mapper = new ObjectMapper();
 
-	public CassandraDB() {
-		cluster = Cluster.builder().addContactPoint("127.0.0.1").build();
+	public CassandraDB(Map stormConfig) {
+		this((String) stormConfig.get("svend.example.cassandra.ip"));
+	}
+	
+	public CassandraDB(String cassandraIP) {
+		System.out.println("build cassandra DB");
+		cluster = Cluster.builder().addContactPoint(cassandraIP).build();
+		reset();
 
 		// don't forget to create that keyspace in Cassandra before try to run this, this command should do:
 		// CREATE KEYSPACE EVENT_POC WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': '1' } ;
-		session = cluster.connect("EVENT_POC");
+		// ( the table creation will be automatic)
+		System.out.println("cassandra DB built");
 	}
 	
 	//////////////
@@ -62,7 +68,7 @@ public class CassandraDB {
 		for (RoomPresencePeriod rpp : periods) {
 			try {
 				String periodJson = mapper.writeValueAsString(rpp);
-				PreparedStatement statement = session.prepare("INSERT INTO presence  (id, payload) values (?,?)");
+				PreparedStatement statement = getSession().prepare("INSERT INTO presence  (id, payload) values (?,?)");
 				execute(new BoundStatement(statement).bind(rpp.getId(), periodJson));
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -108,7 +114,7 @@ public class CassandraDB {
 			try {
 				String id = buildTimelineId(timeline.getRoomId(), timeline.getSliceStartMillis());
 				String timelineJson = mapper.writeValueAsString(timeline);
-				PreparedStatement statement = session.prepare("INSERT INTO room_timelines  (id, timeline) values (?,?)");
+				PreparedStatement statement = getSession().prepare("INSERT INTO room_timelines  (id, timeline) values (?,?)");
 				execute(new BoundStatement(statement).bind(id, timelineJson));
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -140,20 +146,16 @@ public class CassandraDB {
 		execute("create table  " + tableName + " " + spec);
 	}
 
-	public void close() {
-		cluster.shutdown();
-	}
-
 	protected ResultSet execute(Query query) {
 		if (query != null) {
-			return session.execute(query);
+			return getSession().execute(query);
 		}
 		return null;
 	}
 
 	protected ResultSet execute(String query) {
 		if (query != null) {
-			return session.execute(query);
+			return getSession().execute(query);
 		}
 		return null;
 	}
@@ -191,6 +193,18 @@ public class CassandraDB {
 			}
 		}
 		return fromDB;
+	}
+	
+	protected Session getSession() {
+		if (session == null) {
+			synchronized (this) {
+				if (session == null) {
+					session = cluster.connect("EVENT_POC");
+				}
+			}
+		}
+		return session;
+
 	}
 
 

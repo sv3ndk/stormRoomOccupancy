@@ -18,7 +18,8 @@ public class EventBuilder extends BaseFunction {
 	private transient ObjectMapper mapper ;
 	
 	private static final long serialVersionUID = 1L;
-
+	
+	
 	public void execute(TridentTuple tuple, TridentCollector collector) {
 		String jsonEvent = (String) tuple.getValueByField("rawOccupancyEvent");
 

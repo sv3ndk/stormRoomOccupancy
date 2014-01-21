@@ -17,20 +17,21 @@ import backtype.storm.task.IMetricsContext;
  */
 public class PeriodBackingMap implements IBackingMap<RoomPresencePeriod> {
 
-	public static StateFactory FACTORY = new StateFactory() {
-		public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
-			// our logic is fully idempotent => no Opaque map nor Transactional map required here...
-			return NonTransactionalMap.build(new PeriodBackingMap());
-		}
-	};
+	private final CassandraDB DB;
 
+	public PeriodBackingMap(CassandraDB dB) {
+		super();
+		DB = dB;
+	}
+	
 	public List<RoomPresencePeriod> multiGet(List<List<Object>> keys) {
-		return CassandraDB.DB.getPresencePeriods(toCorrelationIdList(keys));
+		return DB.getPresencePeriods(toCorrelationIdList(keys));
 	}
 
 	public void multiPut(List<List<Object>> keys, List<RoomPresencePeriod> newOrUpdatedPeriods) {
-		CassandraDB.DB.upsertPeriods(newOrUpdatedPeriods);
+		DB.upsertPeriods(newOrUpdatedPeriods);
 	}
+
 
 	private List<String> toCorrelationIdList(List<List<Object>> keys) {
 		List<String> structuredKeys = new LinkedList();
@@ -39,5 +40,14 @@ public class PeriodBackingMap implements IBackingMap<RoomPresencePeriod> {
 		}
 		return structuredKeys;
 	}
+	
+	
+	public static StateFactory FACTORY = new StateFactory() {
+		public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
+			// our logic is fully idempotent => no Opaque map nor Transactional map required here...
+			System.out.println("building period backing map");
+			return NonTransactionalMap.build(new PeriodBackingMap(new CassandraDB(conf)));
+		}
+	};
 
 }

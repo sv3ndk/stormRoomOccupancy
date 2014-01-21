@@ -25,22 +25,35 @@ public class SimpleFileStringSpout extends BaseRichSpout {
 
 	private final String emittedTupleName;
 
-	private static BufferedReader br;
+	private BufferedReader br;
 	private SpoutOutputCollector collector;
+	private String sourceFileName;
 
 	public SimpleFileStringSpout(String sourceFileName, String emittedTupleName) {
 		super();
 		this.emittedTupleName = emittedTupleName;
+		this.sourceFileName = sourceFileName;
+
+	}
+
+    @Override
+    public void activate() {
+    	System.out.println("activating");
+    }
+
+    @Override
+    public void deactivate() {
+    }
+
+	
+	public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+		System.out.println("opening");
+		this.collector = collector;
 		try {
 			br = new BufferedReader(new FileReader(new File(sourceFileName)));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-
-	}
-
-	public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-		this.collector = collector;
 	}
 
 	public void close() {
@@ -56,18 +69,20 @@ public class SimpleFileStringSpout extends BaseRichSpout {
 	}
 
 	public void nextTuple() {
+		System.out.println("emtting ...");
 		try {
 			String rawEvent = br.readLine();
 			if (rawEvent != null) {
 
 				try {
 					String messageId = UUID.randomUUID().toString();
+					System.out.println("this: " + rawEvent);
 					collector.emit(new Values(rawEvent), messageId);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			} else {
-				Utils.sleep(1);
+				Utils.sleep(100);
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);

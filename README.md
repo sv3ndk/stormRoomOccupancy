@@ -11,3 +11,25 @@ In order to run this example, an instance of Cassandra with the following key sp
 ```
 CREATE KEYSPACE EVENT_POC WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': '1' } ;
 ```
+
+(tables are re-created everytime time the topology is re-deployed)
+
+Maybe edit this line in Deployer.java if you Nimbus is not reachable on that IP:
+
+```
+config.put("nimbus.host" , "192.168.33.10");
+```
+
+Then package the topology:
+
+```
+mvn install assembly:assembly
+```
+
+And deploy it: 
+
+```
+storm jar target/stormRoomOccupancy-0.0.2-SNAPSHOT-jar-with-dependencies.jar svend.storm.example.conference.Deployer
+```
+
+
