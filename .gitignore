@@ -5,6 +5,7 @@ target/
 .classpath
 .idea
 *.iml
+data/
 
 .RData
 .Rhistory
