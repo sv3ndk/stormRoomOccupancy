@@ -23,8 +23,8 @@ public class BuildTopology {
 
 		topology
 			// reading events
-			.newStream("occupancy", new SimpleFileStringSpout(sourceFile, "rawOccupancyEvent"))
-//			.newStream("occupancy", new CrappyTransactionalTextFileSpout("rawOccupancyEvent", sourceFile, "UTF-8"))
+//			.newStream("occupancy", new SimpleFileStringSpout(sourceFile, "rawOccupancyEvent"))
+			.newStream("occupancy", new CrappyTransactionalTextFileSpout("rawOccupancyEvent", sourceFile, "UTF-8"))
 //			.newStream("occupancy", new TestWordSpout())
 			
 //			.each(new Fields("word"), new BF(), new Fields("rawOccupancyEvent"))

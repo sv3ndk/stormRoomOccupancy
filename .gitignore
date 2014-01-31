@@ -3,6 +3,8 @@ target/
 .Rhistory
 .project
 .classpath
+.idea
+*.iml
 
 .RData
 .Rhistory

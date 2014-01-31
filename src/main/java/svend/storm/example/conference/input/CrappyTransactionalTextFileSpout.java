@@ -48,7 +48,7 @@ public class CrappyTransactionalTextFileSpout implements ITridentSpout<Set<Strin
 	// Set of messages ids emitted for each transaction id
 	private final static Map<Long, Set<String>> txidMsgIds = new HashMap<>();
 
-	// full String paylayd for each message id
+	// full String payload for each message id
 	private final static Map<String, String> emittedMessages = new HashMap<>();
 
 	public CrappyTransactionalTextFileSpout(String singleOutputFieldName, String sourceFileName, String encoding) {
@@ -76,6 +76,7 @@ public class CrappyTransactionalTextFileSpout implements ITridentSpout<Set<Strin
 
 			// the initialization is doing the actual read operation and keeping the result in memory, to be emitted by the emittor below
 
+            System.out.println("initizliing");
 			try {
 				Set<String> emittedIds = new HashSet<>();
 				for (int idx = 0; idx < batchSize; idx++) {
@@ -135,6 +136,7 @@ public class CrappyTransactionalTextFileSpout implements ITridentSpout<Set<Strin
 		private void initIfNeeded() {
 			if (reader == null) {
 				try {
+                    System.out.print("opeining filne" + sourceFileName);
 					reader = new BufferedReader(new InputStreamReader(new FileInputStream(new File(sourceFileName)), encoding));
 				} catch (Exception e) {
 					throw new RuntimeException("failed to initialize spout", e);
@@ -148,6 +150,9 @@ public class CrappyTransactionalTextFileSpout implements ITridentSpout<Set<Strin
 
 		@Override
 		public void emitBatch(TransactionAttempt tx, Set<String> coordinatorMeta, TridentCollector collector) {
+
+            System.out.println("crappy text emitting ...");
+
 
 			// no NPTR check here: if null happen it's a bug => let's make the baby cry, we'll notice soon enough... 
 			for (String messageId : txidMsgIds.get(tx.getTransactionId())) {

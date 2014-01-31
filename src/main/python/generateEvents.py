@@ -8,9 +8,19 @@ from datetime import datetime
 import hashlib
 import json
 
+# https://pypi.python.org/pypi/pykafka
+# do not forget to: 
+# pip install pykafka
+
+import kafka 
+
+
 USERS_NAMES = ["Fred", "Jenny", "Marie", "Zoe", "Robert", "John"]
 ROOM_IDS = ["Conf1", "Conf2", "Cafetaria", "Lounge", "Hall", "Annex1"]
 
+KAFKA_BROKER_HOST="192.168.33.10"
+KAFKA_BROKER_PORT=9092
+KAFKA_EVENT_TOPIC="room_events"
 
 # all timestamps are expressed in milliseconds since 1rst Jan 1970 
 JULY_27_9am = mktime(datetime(2013, 7, 27, 9, 0).timetuple()) * 1000
@@ -48,6 +58,18 @@ def buildStartStopEvent(occupancy):
 	return [startEvent, endEvent]
 
 
+def sendJsonTokafka(events):
+	
+	producer = kafka.producer.Producer(KAFKA_EVENT_TOPIC, partition=0, host=KAFKA_BROKER_HOST, port=KAFKA_BROKER_PORT) 
+
+	print ("sending events to kafka topic %s..." %  KAFKA_EVENT_TOPIC)
+	# TODO: we could batch event emission here...
+	for event in events:
+		eventJson = json.dumps(event)
+		producer.send(kafka.message.Message(eventJson))
+	print ("...events sent.")
+
+
 
 if __name__ == "__main__":
 
@@ -60,9 +82,14 @@ if __name__ == "__main__":
 	# transforms timelines into events
 	events = [event for timeline in timelines for occupancy in timeline for event in buildStartStopEvent(occupancy) ]
 
-	shuffle(events)
+	sendJsonTokafka(events)
+	# shuffle(events)
 
-	with open ("../../../data/events.json", "w") as eventFile: 
-		for event in events:
-			# not a json array but one json event per line, for easy reading in the spout
-			eventFile.write(json.dumps(event) + "\n")
+	# with open ("../../../data/events.json", "w") as eventFile: 
+	# 	for event in events:
+	# 		# not a json array but one json event per line, for easy reading in the spout
+	# 		eventFile.write(json.dumps(event) + "\n")
+
+
+
+

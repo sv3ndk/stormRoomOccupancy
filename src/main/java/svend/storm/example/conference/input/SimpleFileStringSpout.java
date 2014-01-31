@@ -69,7 +69,7 @@ public class SimpleFileStringSpout extends BaseRichSpout {
 	}
 
 	public void nextTuple() {
-		System.out.println("emtting ...");
+		System.out.println("simple text emitting ...");
 		try {
 			String rawEvent = br.readLine();
 			if (rawEvent != null) {

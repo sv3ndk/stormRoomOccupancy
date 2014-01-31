@@ -23,7 +23,7 @@ config.put("nimbus.host" , "192.168.33.10");
 Then package the topology:
 
 ```
-mvn install assembly:assembly
+mvn package
 ```
 
 And deploy it: 
