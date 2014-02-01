@@ -26,6 +26,8 @@ public class EventBuilder extends BaseFunction {
 		if (jsonEvent != null && jsonEvent.length() > 0) {
 			try {
 				LocationChangedEvent event = getMapper().readValue(jsonEvent, LocationChangedEvent.class);
+
+				System.out.println("emtting event " + event.getId());
 				collector.emit(new Values(event));
 			} catch (IOException e) {
 				// parsing error => asking Storm to retry would be pointless
