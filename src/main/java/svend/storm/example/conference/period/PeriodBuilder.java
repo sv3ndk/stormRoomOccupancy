@@ -14,26 +14,28 @@ public class PeriodBuilder implements ReducerAggregator<RoomPresencePeriod> {
 		return null;
 	}
 
-	public RoomPresencePeriod reduce(RoomPresencePeriod curr, TridentTuple tuple) {
+	public RoomPresencePeriod reduce(RoomPresencePeriod prev, TridentTuple tuple) {
 
 		LocationChangedEvent event = (LocationChangedEvent) tuple.getValueByField("occupancyEvent");
-		
-		if (curr == null) {
+
+        RoomPresencePeriod curr;
+
+		if (prev == null) {
 			// first tuple for this period
 			
 			curr = new RoomPresencePeriod();
 			
-			// Warning: we actually trust that the event producer is going to provide us with unique id here 
+			// We trust that the event producer is going to provide us with unique id here
 			// (in real life, don't trust any client too much...^__)
 			curr.setId(event.getCorrId());
 			
 			curr.setUserId(event.getUserId());
 			curr.setRoomId(event.getRoomId());
 		} else {
-			// to be clean: we should check consistency with previous events here...
+			curr = new RoomPresencePeriod(prev);
 		}
 		
-		// warning: directly updating and returning the received instance. That's usually a *bad* idea, but ok here given the way they are persisted  
+
 		if (ENTER == event.getEventType()) {
 			curr.setStartTime(event.getTime());
 		} else {

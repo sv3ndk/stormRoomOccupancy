@@ -1,31 +1,31 @@
 package svend.storm.example.conference;
 
+
+import static java.lang.String.format;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import backtype.storm.topology.FailedException;
+import com.datastax.driver.core.*;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
+import storm.trident.state.OpaqueValue;
 import svend.storm.example.conference.period.RoomPresencePeriod;
-import svend.storm.example.conference.timeline.HourlyTimeline;
 
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Query;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 
 public class CassandraDB {
 
-	// quick and dirty JVM-wide singleton
-
 	private final Cluster cluster;
 	private Session session;
+
+    private static Logger logger = LogManager.getLogger(CassandraDB.class.getName());
 
 	private ObjectMapper mapper = new ObjectMapper();
 
@@ -43,9 +43,38 @@ public class CassandraDB {
 		// ( the table creation will be automatic)
 		System.out.println("cassandra DB built");
 	}
-	
-	//////////////
-	// room presence periods
+
+    ///////
+    // generic opaque put/get (don't do this: get a real Cassandrabacking, e.g. the one from storm-contrib)
+
+
+
+
+    public void put(String table, List<String> keys, List<OpaqueValue> opaqueStrings) {
+
+        // this could be optimzed with batches..
+        for (Pair<String, OpaqueValue> keyValue : Utils.zip(keys, opaqueStrings)) {
+            PreparedStatement statement = getSession().prepare(format("INSERT INTO %s (id, txid, prev, curr) values (?,?)", table));
+            execute(new BoundStatement(statement).bind(keyValue.getKey(), keyValue.getValue().getCurr(), keyValue.getValue().getPrev()));
+        }
+    }
+
+    public List<OpaqueValue> get(String table, List<String> keys) {
+
+        List<OpaqueValue> vals = new ArrayList<>(keys.size());
+        ResultSet rs = execute(format("select id, txid, prev, curr from %s where id in ( %s ) ", table, toCsv(keys) ));
+        Map<String, OpaqueValue> data = toMapOfOpaque(rs);
+        for (String key: keys){
+            vals.add(data.get(key));
+        }
+
+        return vals;
+    }
+
+
+
+    //////////////
+	// room presence periods old-style DAO
 	//////////////
 	
 	public List<RoomPresencePeriod> getPresencePeriods(List<String> correlationIds) {
@@ -56,7 +85,7 @@ public class CassandraDB {
 		Map<String, RoomPresencePeriod> fromDB = unmarshallResultSet(rs, RoomPresencePeriod.class, "payload");
 
 		// this ensures we return a list of the same size as the one received as input (may contain null values)
-		List<RoomPresencePeriod> result = new ArrayList<RoomPresencePeriod>(correlationIds.size());
+		List<RoomPresencePeriod> result = new ArrayList<>(correlationIds.size());
 		for (String corrId : correlationIds) {
 			result.add(fromDB.get(corrId));
 		}
@@ -66,66 +95,26 @@ public class CassandraDB {
 
 	public void upsertPeriods(List<RoomPresencePeriod> periods) {
 		for (RoomPresencePeriod rpp : periods) {
+
+            String periodJson;
 			try {
-				String periodJson = mapper.writeValueAsString(rpp);
-				PreparedStatement statement = getSession().prepare("INSERT INTO presence  (id, payload) values (?,?)");
+				periodJson = mapper.writeValueAsString(rpp);
+            } catch (IOException e) {
+                // this should typically be recorded somewhere to a dead letter queue for some human to look at
+                logger.error("impossible to serialize a room presence period object to JSON => THIS DATA IS LOST!", e);
+                continue;
+            }
+
+            try {
+				PreparedStatement statement = getSession().prepare("INSERT INTO presence (id, payload) values (?,?)");
 				execute(new BoundStatement(statement).bind(rpp.getId(), periodJson));
 			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
-	
-	//////////////
-	// timelines
-	//////////////
-
-
-	public List<HourlyTimeline> getTimelines(List<Pair<String, Long>> roomIdAndStartTime) {
-
-		List<String> ids = new ArrayList<>(roomIdAndStartTime.size());
-		for (Pair<String, Long> roomidAndStartTime : roomIdAndStartTime) {
-			ids.add(buildTimelineId(roomidAndStartTime.first, roomidAndStartTime.second));
-		}
-
-		ResultSet rs = execute("select id, timeline from room_timelines where id in ( " + toCsv(ids) + " ) ");
-		Map<String, HourlyTimeline> fromDB = unmarshallResultSet(rs, HourlyTimeline.class, "timeline");
-
-		// this ensures we return a list of the same size as the one received as input (may contain null values)
-		List<HourlyTimeline> result = new ArrayList<>(roomIdAndStartTime.size());
-		for (String id : ids) {
-			result.add(fromDB.get(id));
-		}
-
-		return result;
-	}
-	
-	
-	public Collection<HourlyTimeline> getAllTimelines() {
-		ResultSet rs = execute("select id, timeline from room_timelines ");
-		return unmarshallResultSet(rs, HourlyTimeline.class, "timeline").values();
-	}
-
-	
-
-	
-	public void upsertTimelines(List<HourlyTimeline> timelines) {
-		for (HourlyTimeline timeline : timelines) {
-			try {
-				String id = buildTimelineId(timeline.getRoomId(), timeline.getSliceStartMillis());
-				String timelineJson = mapper.writeValueAsString(timeline);
-				PreparedStatement statement = getSession().prepare("INSERT INTO room_timelines  (id, timeline) values (?,?)");
-				execute(new BoundStatement(statement).bind(id, timelineJson));
-			} catch (Exception e) {
-				e.printStackTrace();
+                logger.error("error while contacting Cassandra, triggering a retry...", e);
+				new FailedException("error while trying to record room presence in Cassandra ", e);
 			}
 		}
 	}
 
-	
-	private String buildTimelineId(String roomId, Long startTime) {
-		return roomId + "_" + (long) Math.ceil(startTime);
-	}
 
 	//////////////
 	// generic DB stuff
@@ -134,7 +123,7 @@ public class CassandraDB {
 
 	public void reset() {
 		recreateTable("presence", "(id text PRIMARY KEY, payload TEXT)");
-		recreateTable("room_timelines", "(id text PRIMARY KEY, timeline TEXT)");
+		recreateTable("room_timelines", "(id text PRIMARY KEY, txid bigint, curr TEXT, prev TEXT)");
 	}
 
 	private void recreateTable(String tableName, String spec) {
@@ -177,23 +166,43 @@ public class CassandraDB {
 	}
 
 	/**
-	 * expects this resultSet to contain a "id" and a json field called fieldName => unmarshalls that and return a map
+	 * unbox the id, txid, prev, c
 	 */
-	private <T> Map<String, T> unmarshallResultSet(ResultSet resultSet, Class<T> expectedClass, String fieldName) {
+	private  Map<String, OpaqueValue> toMapOfOpaque(ResultSet resultSet) {
 
-		Map<String, T> fromDB = new HashMap<String, T>();
+		Map<String, OpaqueValue> fromDB = new HashMap<>();
 		while (!resultSet.isExhausted()) {
 			try {
 				Row row = resultSet.one();
-				T unmarshalled = mapper.readValue(row.getString(fieldName), expectedClass);
-				fromDB.put(row.getString("id"), unmarshalled);
+                OpaqueValue opaqueVal = new OpaqueValue(row.getLong("txid"), row.getString("prev"), row.getString("curr"));
+                fromDB.put(row.getString("id"), opaqueVal);
 			} catch (Exception e) {
-
-				e.printStackTrace();
+				System.err.println("failed to unmarshall data from DB => data is now lost!");
+                e.printStackTrace();
 			}
 		}
 		return fromDB;
 	}
+
+
+    /**
+     * expects this resultSet to contain a "id" and a json field called fieldName => unmarshalls that and return a map
+     */
+    private <T> Map<String, T> unmarshallResultSet(ResultSet resultSet, Class<T> expectedClass, String fieldName) {
+
+        Map<String, T> fromDB = new HashMap<>();
+        while (!resultSet.isExhausted()) {
+            try {
+                Row row = resultSet.one();
+                T unmarshalled = mapper.readValue(row.getString(fieldName), expectedClass);
+                fromDB.put(row.getString("id"), unmarshalled);
+            } catch (Exception e) {
+
+                e.printStackTrace();
+            }
+        }
+        return fromDB;
+    }
 	
 	protected Session getSession() {
 		if (session == null) {

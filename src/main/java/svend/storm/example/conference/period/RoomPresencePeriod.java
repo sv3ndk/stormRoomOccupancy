@@ -16,7 +16,20 @@ public class RoomPresencePeriod {
 
 	private Set<LocationChangedEvent> basedOn = new HashSet<LocationChangedEvent>();
 
-	public String getUserId() {
+    public RoomPresencePeriod(RoomPresencePeriod prev) {
+        if (prev != null) {
+            this.id = prev.id;
+            this.roomId = prev.roomId;
+            this.startTime = prev.startTime;
+            this.endTme = prev.endTme;
+        }
+    }
+
+    public RoomPresencePeriod() {
+
+    }
+
+    public String getUserId() {
 		return userId;
 	}
 
