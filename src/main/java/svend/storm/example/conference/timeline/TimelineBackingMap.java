@@ -30,7 +30,7 @@ public class TimelineBackingMap implements IBackingMap<OpaqueValue> {
         List<OpaqueValue> opaqueStrings;
         try {
             opaqueStrings = DB.get("room_timelines", toSingleKeys(keys));
-        } catch (Exception e)  {
+        } catch (Exception e) {
             System.err.print("error while storing timelines to cassandra");
             e.printStackTrace();
             throw new FailedException("could not store data into Cassandra", e);
@@ -40,8 +40,7 @@ public class TimelineBackingMap implements IBackingMap<OpaqueValue> {
             return Utils.opaqueStringToOpaqueValues(opaqueStrings, HourlyTimeline.class);
         } catch (IOException e) {
             System.err.println("error while trying to deserialize data from json => giving up (data is lost!)");
-            // TODO: list of correct size here + handling downstream
-            return null;
+            return Utils.listOfNulls(keys.size());      // this assumes previous state does not exist => destroys data!
         }
 
     }
@@ -61,9 +60,9 @@ public class TimelineBackingMap implements IBackingMap<OpaqueValue> {
             try {
                 DB.put("room_timelines", toSingleKeys(keys), jsonOpaqueTimelines);
             } catch (Exception e)  {
-                System.err.print("error while storing timelines to cassandra");
+                System.err.print("error while storing timelines to cassandra, triggering a retry...");
                 e.printStackTrace();
-                throw new FailedException("could not store data into Cassandra", e);
+                throw new FailedException("could not store data into Cassandra, triggering a retry...", e);
             }
         }
 

@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.lang3.tuple.Pair;
+import svend.storm.example.conference.period.RoomPresencePeriod;
 import svend.storm.example.conference.timeline.HourlyTimeline;
 
 /**
@@ -34,9 +35,13 @@ public class Utils {
     public static List<OpaqueValue> opaqueStringToOpaqueValues(List<OpaqueValue> opaqueStrings, Class<HourlyTimeline> expectedClass) throws IOException {
         List<OpaqueValue> opaqueValues = new ArrayList<>(opaqueStrings.size());
         for (OpaqueValue opaqueString : opaqueStrings) {
-            Object currVal = opaqueString.getCurr() == null ? null : mapper.readValue((String) opaqueString.getCurr(), expectedClass);
-            Object prevVal = opaqueString.getPrev() == null ? null : mapper.readValue((String) opaqueString.getPrev(), expectedClass);
-            opaqueValues.add(new OpaqueValue(opaqueString.getCurrTxid(), currVal, prevVal));
+            if (opaqueString == null) {
+                opaqueValues.add(null);
+            } else {
+                Object currVal = opaqueString.getCurr() == null ? null : mapper.readValue((String) opaqueString.getCurr(), expectedClass);
+                Object prevVal = opaqueString.getPrev() == null ? null : mapper.readValue((String) opaqueString.getPrev(), expectedClass);
+                opaqueValues.add(new OpaqueValue(opaqueString.getCurrTxid(), currVal, prevVal));
+            }
         }
         return opaqueValues;
     }
@@ -67,4 +72,11 @@ public class Utils {
     }
 
 
+    public static List listOfNulls(int size) {
+        List nulls = new ArrayList(size);
+        for (int i = 0 ; i < size ; i++) {
+            nulls.add(null);
+        }
+        return nulls;
+    }
 }

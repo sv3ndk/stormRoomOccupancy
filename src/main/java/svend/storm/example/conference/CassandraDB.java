@@ -36,7 +36,6 @@ public class CassandraDB {
 	public CassandraDB(String cassandraIP) {
 		System.out.println("build cassandra DB");
 		cluster = Cluster.builder().addContactPoint(cassandraIP).build();
-		reset();
 
 		// don't forget to create that keyspace in Cassandra before try to run this, this command should do:
 		// CREATE KEYSPACE EVENT_POC WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': '1' } ;
@@ -45,17 +44,18 @@ public class CassandraDB {
 	}
 
     ///////
-    // generic opaque put/get (don't do this: get a real Cassandrabacking, e.g. the one from storm-contrib)
+    // generic opaque put/get (don't do this: get a real CassandraBacking, e.g. the one from storm-contrib)
 
 
 
 
     public void put(String table, List<String> keys, List<OpaqueValue> opaqueStrings) {
 
-        // this could be optimzed with batches..
+        // this could be optimzed with batches...
         for (Pair<String, OpaqueValue> keyValue : Utils.zip(keys, opaqueStrings)) {
-            PreparedStatement statement = getSession().prepare(format("INSERT INTO %s (id, txid, prev, curr) values (?,?)", table));
-            execute(new BoundStatement(statement).bind(keyValue.getKey(), keyValue.getValue().getCurr(), keyValue.getValue().getPrev()));
+            PreparedStatement statement = getSession().prepare(format("INSERT INTO %s (id, txid, prev, curr) values (?, ?, ?, ?)", table));
+            OpaqueValue opaqueVal = keyValue.getValue();
+            execute(new BoundStatement(statement).bind(keyValue.getKey(), opaqueVal.getCurrTxid(), opaqueVal.getCurr(), opaqueVal.getPrev()));
         }
     }
 
@@ -94,7 +94,9 @@ public class CassandraDB {
 	}
 
 	public void upsertPeriods(List<RoomPresencePeriod> periods) {
-		for (RoomPresencePeriod rpp : periods) {
+
+        // TODO: this could be optimized with batches...
+        for (RoomPresencePeriod rpp : periods) {
 
             String periodJson;
 			try {

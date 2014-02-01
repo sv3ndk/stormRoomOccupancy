@@ -26,13 +26,12 @@ public class EventBuilder extends BaseFunction {
 		if (jsonEvent != null && jsonEvent.length() > 0) {
 			try {
 				LocationChangedEvent event = getMapper().readValue(jsonEvent, LocationChangedEvent.class);
-
-				System.out.println("emtting event " + event.getId());
+				System.out.println("emitting event " + event.getId());
 				collector.emit(new Values(event));
 			} catch (IOException e) {
-				// parsing error => asking Storm to retry would be pointless
-				collector.reportError(e);
-			}
+                System.err.println("ERROR: lost data: unable to parse inbound message from Kafka (expecting UTF-8 string)");
+                e.printStackTrace();
+            }
 		}
 	}
 	

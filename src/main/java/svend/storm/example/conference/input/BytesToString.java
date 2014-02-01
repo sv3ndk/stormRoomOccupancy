@@ -9,7 +9,6 @@ import storm.trident.tuple.TridentTuple;
 import java.io.UnsupportedEncodingException;
 
 /**
- * Created by svend on 01/02/14.
  */
 public class BytesToString extends BaseFunction {
 
@@ -19,7 +18,8 @@ public class BytesToString extends BaseFunction {
             String asString = new String((byte[]) tuple.getValueByField("bytes"), "UTF-8");
             tridentCollector.emit(new Values(asString));
         } catch (UnsupportedEncodingException e) {
-            // TODO...
+            System.err.println("ERROR: lost data: unable to parse inbound message from Kafka (expecting UTF-8 string)");
+            e.printStackTrace();
         }
     }
 }

@@ -4,12 +4,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import backtype.storm.topology.FailedException;
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
 import storm.trident.state.map.IBackingMap;
 import storm.trident.state.map.NonTransactionalMap;
 import svend.storm.example.conference.CassandraDB;
 import backtype.storm.task.IMetricsContext;
+import svend.storm.example.conference.Utils;
 
 /**
  * retrieves in Cassandra the list of existing {@link RoomPresencePeriod} at the beginning of a batch and updates them at the end of the
@@ -25,7 +27,14 @@ public class PeriodBackingMap implements IBackingMap<RoomPresencePeriod> {
 	}
 	
 	public List<RoomPresencePeriod> multiGet(List<List<Object>> keys) {
-		return DB.getPresencePeriods(toCorrelationIdList(keys));
+        try {
+		    return DB.getPresencePeriods(toCorrelationIdList(keys));
+        } catch (Exception e) {
+            System.err.println("error while trying to read timelines");
+            e.printStackTrace();
+            throw new FailedException("", e);
+
+        }
 	}
 
 	public void multiPut(List<List<Object>> keys, List<RoomPresencePeriod> newOrUpdatedPeriods) {
@@ -45,7 +54,6 @@ public class PeriodBackingMap implements IBackingMap<RoomPresencePeriod> {
 	public static StateFactory FACTORY = new StateFactory() {
 		public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
 			// our logic is fully idempotent => no Opaque map nor Transactional map required here...
-			System.out.println("building period backing map");
 			return NonTransactionalMap.build(new PeriodBackingMap(new CassandraDB(conf)));
 		}
 	};

@@ -31,7 +31,7 @@ public class BuildHourlyUpdateInfo extends BaseFunction {
 	 * creates the list of "round hours" 
 	 */
 	private List<Long> generateRoundPeriods(Long startTime, Long endTime) {
-		List<Long> roundPeriods = new LinkedList<Long>();
+		List<Long> roundPeriods = new LinkedList<>();
 		for (Long roundStartTime = ceilHourTime(startTime); roundStartTime < ceilHourTime(endTime) + ONE_HOUR_MILLIS; roundStartTime += ONE_HOUR_MILLIS) {
 			roundPeriods.add(roundStartTime);
 		}
