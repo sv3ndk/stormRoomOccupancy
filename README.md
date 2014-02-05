@@ -1,10 +1,12 @@
 stormRoomOccupancy
 ==================
 
-Basic Storm topology that updates DB persistent state. based on Storm 0.8.2, Cassandra 1.2.5 and Java 7.
+Basic Storm topology that updates DB persistent state. The code is based on Storm 0.9.0.1, Cassandra 2.0.4 and Java 7.
 
-This example is explained in great details here: 
+The [first release | https://github.com/svendx4f/stormRoomOccupancy/releases/tag/v1.0.1] is explained in great details here:
 http://svendvanderveken.wordpress.com/2013/07/30/scalable-real-time-state-update-with-storm/
+
+And he the second release is the base for my blog on [Storm error handling | http://svendvanderveken.wordpress.com/2014/02/01/notes-on-storm-trident-error-handling]
 
 In order to run this example, an instance of Cassandra with the following key space is required: 
 
